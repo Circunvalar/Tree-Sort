@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>TreeSort Visual (Final)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            background: #020617;
+            color: #e5e5e5;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        h1 {
+            color: #38bdf8;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        input {
+            padding: 10px;
+            width: 260px;
+            background: #020617;
+            border: 1px solid #1e293b;
+            color: white;
+            border-radius: 10px;
+        }
+
+        .btn {
+            background: #020617;
+            border: 1px solid #1e293b;
+            padding: 10px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: white;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: #0f172a;
+        }
+
+        .controls {
+            margin-top: 15px;
+        }
+
+        #tree {
+            margin-top: 50px;
+            position: relative;
+            height: 420px;
+        }
+
+        .node {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #0f172a;
+            border: 1px solid #334155;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            transition: 0.3s;
+        }
+
+        .active {
+            background: #f59e0b;
+            color: black;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        .sorted {
+            margin-top: 40px;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .sorted .node {
+            position: static;
+            transform: none;
+            background: #022c22;
+            border: 1px solid #10b981;
+            color: #6ee7b7;
+        }
+
+        .estado {
+            margin-top: 15px;
+            color: #38bdf8;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <h1>🌲 TreeSort Visual</h1>
+
+    <div>
+        <input id="input" placeholder="6,3,8,1,5,9,2,7">
+        <button class="btn" onclick="cargar()">Cargar datos</button>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="prevStep()">⬅ Paso anterior</button>
+        <button class="btn" onclick="nextStep()">➡ Paso siguiente</button>
+        <button class="btn" onclick="play()">▶ Reproducir</button>
+        <button class="btn" onclick="pause()">⏸ Pausar</button>
+    </div>
+
+    <div id="estado" class="estado">Esperando datos...</div>
+
+    <div id="tree"></div>
+
+    <div id="sorted" class="sorted"></div>
+
+</div>
+
+<script>
+    let steps = [];
+    let current = 0;
+    let playing = false;
+    let interval = null;
+
+    async function cargar() {
+        const input = document.getElementById("input").value;
+
+        const arr = input.split(/[\s,]+/)
+            .map(n => parseInt(n))
+            .filter(n => !isNaN(n));
+
+        const res = await fetch("/api/treesort/steps", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(arr)
+        });
+
+        steps = await res.json();
+        current = 0;
+        render();
+    }
+
+    function render() {
+        if (!steps.length) return;
+
+        const step = steps[current];
+
+        renderTree(step.tree, step.value);
+        renderSorted(step.sorted);
+
+        document.getElementById("estado").innerText =
+            `${step.type.toUpperCase()} ${step.value ?? ''} | Paso ${current + 1}/${steps.length}`;
+    }
+
+    function nextStep() {
+        if (current < steps.length - 1) {
+            current++;
+            render();
+        }
+    }
+
+    function prevStep() {
+        if (current > 0) {
+            current--;
+            render();
+        }
+    }
+
+    function play() {
+        if (playing) return;
+        playing = true;
+
+        interval = setInterval(() => {
+            if (current >= steps.length - 1) {
+                pause();
+                return;
+            }
+            current++;
+            render();
+        }, 600);
+    }
+
+    function pause() {
+        playing = false;
+        clearInterval(interval);
+    }
+
+    function renderTree(root, active) {
+        const cont = document.getElementById("tree");
+
+        if (!root) {
+            cont.innerHTML = "<p style='color:#555'>Árbol vacío</p>";
+            return;
+        }
+
+        const positions = [];
+        const width = cont.clientWidth;
+        const levelHeight = 80;
+
+        function traverse(node, depth, xMin, xMax) {
+            if (!node) return;
+
+            const x = (xMin + xMax) / 2;
+            const y = depth * levelHeight + 40;
+
+            positions.push({ node, x, y });
+
+            traverse(node.left, depth + 1, xMin, x);
+            traverse(node.right, depth + 1, x, xMax);
+        }
+
+        traverse(root, 0, 0, width);
+
+        let html = "";
+
+        positions.forEach(p => {
+            html += `
+                <div class="node ${p.node.value === active ? 'active' : ''}"
+                     style="left:${p.x}px; top:${p.y}px;">
+                    ${p.node.value}
+                </div>
+            `;
+        });
+
+        cont.innerHTML = html;
+    }
+
+    function renderSorted(arr) {
+        document.getElementById("sorted").innerHTML =
+            arr.map(n => `<div class="node">${n}</div>`).join("");
+    }
+
+    document.getElementById("input").value = "6,3,8,1,5,9,2,7";
+</script>
+
+</body>
+</html>
