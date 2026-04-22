@@ -1,8 +1,11 @@
 package com.ucentral.edu.desarrollos.treesortcode.dtos;
 
 import com.ucentral.edu.desarrollos.treesortcode.modelos.Nodo;
+import lombok.Getter;
+
 import java.util.List;
 
+@Getter
 public class PasoDto {
 
     private String type; // insert | visit | done
@@ -17,9 +20,4 @@ public class PasoDto {
         this.sorted = sorted;
     }
 
-    public String getType() { return type; }
-    public Integer getValue() { return value; }
-
-    public Nodo getTree() { return tree; }
-    public List<Integer> getSorted() { return sorted; }
 }

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Benchmark TreeSort</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { background:#020617; color:#e5e5e5; font-family:Arial, sans-serif; }
+        .container { max-width:1000px; margin:auto; padding:20px; }
+        .btn { background:#020617; border:1px solid #1e293b; padding:8px 12px; border-radius:8px; color:white; cursor:pointer; }
+        input, select { padding:8px; border-radius:8px; background:#071022; color:#e5e5e5; border:1px solid #1e293b; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/js/bench.js"></script>
+</head>
+<body>
+<div class="container">
+    <h1>📈 Benchmark TreeSort</h1>
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <label>Tamaño del arreglo (n) <input id="sizeN" type="number" value="100" min="1"></label>
+        <label>Modo <select id="mode"><option value="random">random</option><option value="manual">manual</option></select></label>
+        <label>Valor mínimo <input id="minVal" type="number" value="0"></label>
+        <label>Valor máximo <input id="maxVal" type="number" value="1000"></label>
+        <label>Repeticiones <input id="reps" type="number" value="3" min="1"></label>
+        <button class="btn" onclick="runBenchmark()">▶ Ejecutar benchmark</button>
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+        <label>Runs guardados: <select id="savedRuns" style="min-width:260px"></select></label>
+        <button class="btn" onclick="loadSelectedRun()">📂 Cargar run</button>
+        <button class="btn" onclick="analyzeSelectedRun()">🧠 Analizar con IA (servidor)</button>
+        <button class="btn" onclick="analyzeDisplayedData()">🧠 Analizar (heurístico cliente)</button>
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+        <label>Arreglo manual (coma separada):</label>
+        <input id="manualArray" type="text" style="min-width:320px" placeholder="6,3,8,1,5" />
+        <label><input id="autoRun" type="checkbox" /> Ejecutar automáticamente</label>
+    </div>
+
+    <div style="margin-top:18px;">
+        <canvas id="chart" height="120"></canvas>
+    </div>
+    <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+        <label><input type="checkbox" id="scaleTheories" /> Escalar funciones teóricas (ajustar c)</label>
+        <button class="btn" onclick="exportDisplayedCSV()">📤 Exportar CSV</button>
+    </div>
+
+    <div id="pointsTableWrapper" style="margin-top:12px;color:#cbd5e1;"></div>
+
+    <div id="analysisPanel" style="margin-top:12px; white-space:pre-wrap; color:#cbd5e1;"></div>
+
+    <div id="resultInfo" style="margin-top:12px; white-space:pre-wrap; color:#cbd5e1;"></div>
+    <div style="margin-top:12px;"><a class="btn" href="/">🏠 Volver</a></div>
+</div>
+</body>
+</html>
+

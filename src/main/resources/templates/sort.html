@@ -110,11 +110,23 @@
         <button class="btn" onclick="cargar()">Cargar datos</button>
     </div>
 
+    <div style="margin-top:12px; display:flex; justify-content:center; gap:10px; align-items:center; flex-wrap:wrap;">
+        <!-- CSV upload -->
+        <input type="file" id="fileInput" accept=".csv,.txt" style="background:#020617; color:white; border-radius:10px; padding:6px;" />
+        <button class="btn" onclick="cargarDesdeArchivo()">📁 Cargar CSV/TXT</button>
+
+        <!-- Random generator -->
+        <input id="randomCount" type="number" min="1" max="1000" placeholder="10" style="width:90px; padding:8px; background:#020617; color:white; border:1px solid #1e293b; border-radius:10px;" />
+        <button class="btn" onclick="generarAleatorio()">🎲 Generar aleatorio</button>
+    </div>
+
     <div class="controls">
         <button class="btn" onclick="prevStep()">⬅ Paso anterior</button>
         <button class="btn" onclick="nextStep()">➡ Paso siguiente</button>
         <button class="btn" onclick="play()">▶ Reproducir</button>
         <button class="btn" onclick="pause()">⏸ Pausar</button>
+        <button class="btn" onclick="goExplain()">📘 Explicación (Arreglo)</button>
+        <button class="btn" onclick="goBenchmark()">📊 Benchmark</button>
     </div>
 
     <div id="estado" class="estado">Esperando datos...</div>
@@ -147,6 +159,45 @@
         steps = await res.json();
         current = 0;
         render();
+    }
+
+    // Cargar y parsear archivo CSV o TXT del cliente. Extrae números y los coloca en el campo de entrada
+    function cargarDesdeArchivo() {
+        const fi = document.getElementById('fileInput');
+        if (!fi.files || fi.files.length === 0) {
+            alert('Por favor selecciona un archivo CSV o TXT.');
+            return;
+        }
+        const f = fi.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            // Extraer números separados por comas, espacios o nuevas líneas
+            const arr = text.split(/[^0-9-]+/).map(s => parseInt(s)).filter(n => !isNaN(n));
+            if (!arr.length) {
+                alert('No se encontraron números en el archivo.');
+                return;
+            }
+            document.getElementById('input').value = arr.join(',');
+            cargar();
+        };
+        reader.onerror = function() { alert('Error leyendo el archivo.'); };
+        reader.readAsText(f);
+    }
+
+    // Genera n números aleatorios (por defecto 10) en rango 0..1000 y carga la vista
+    function generarAleatorio() {
+        let count = parseInt(document.getElementById('randomCount').value);
+        if (isNaN(count) || count <= 0) count = 10;
+        if (count > 1000) { alert('Máximo permitido: 1000 elementos.'); count = 1000; }
+
+        const arr = [];
+        for (let i = 0; i < count; i++) {
+            // números razonables hasta 1000
+            arr.push(Math.floor(Math.random() * 1001));
+        }
+        document.getElementById('input').value = arr.join(',');
+        cargar();
     }
 
     function render() {
@@ -240,6 +291,19 @@
     }
 
     document.getElementById("input").value = "6,3,8,1,5,9,2,7";
+
+    function goExplain() {
+        const input = document.getElementById('input').value || '';
+        const qs = encodeURIComponent(input);
+        location.href = '/tree-explain?input=' + qs;
+    }
+
+    function goBenchmark() {
+        const input = document.getElementById('input').value || '';
+        const qs = encodeURIComponent(input);
+        // navigate to benchmark page and pass input as query param (manual mode can use it)
+        location.href = '/benchmark?input=' + qs;
+    }
 </script>
 
 </body>

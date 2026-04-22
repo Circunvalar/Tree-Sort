@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Explicación - TreeSort (Arreglo)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            background: #020617;
+            color: #e5e5e5;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        h1 { color: #38bdf8; }
+
+        .container {
+            max-width: 1400px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .left-panel {
+            flex: 1;
+            min-width: 520px;
+            text-align: center;
+        }
+
+        .right-panel {
+            flex: 1;
+            min-width: 420px;
+            max-width: 650px;
+        }
+
+        .btn {
+            background: #020617;
+            border: 1px solid #1e293b;
+            padding: 10px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: white;
+            margin: 5px;
+        }
+        .btn:hover { background: #0f172a; }
+
+        pre {
+            text-align: left;
+            background: #071022;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid #1e293b;
+            color: #cbd5e1;
+        }
+
+        .estado { color: #38bdf8; margin-top: 12px; font-weight: bold; }
+
+        .array-view {
+            display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin:12px 0;
+        }
+        .cell {
+            background:#0f172a; border:1px solid #334155; color:#e5e5e5;
+            padding:10px 14px; border-radius:8px; min-width: 42px;
+        }
+        .cell.inserted { background: #022c22; border:1px solid #10b981; color:#6ee7b7; }
+        .cell.pending { opacity:0.5; }
+        .cell.activeCell { outline: 3px solid #f59e0b; transform: scale(1.06); position: relative; }
+        .index-badge { position: absolute; bottom: -12px; right: -6px; background:#0f172a; padding:2px 6px; border-radius:6px; border:1px solid #334155; font-size:11px; }
+
+        #treeVis {
+            background: linear-gradient(180deg, rgba(2,6,23,0.6), rgba(2,6,23,0.3));
+            border-radius:12px; border:1px solid #1e293b; padding:8px;
+            height: 480px; position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        .t-node {
+            width:48px; height:48px; border-radius:50%; background:#0f172a;
+            border:1px solid #334155; color:#e5e5e5; display:flex;
+            align-items:center; justify-content:center; position:absolute;
+            transform:translate(-50%, -50%); font-weight:bold;
+        }
+        .t-node.active { background:#f59e0b; color:black; transform:translate(-50%,-50%) scale(1.15); }
+        .t-badge {
+            position:absolute; top:-8px; right:-8px; background:#0f172a;
+            color:#cbd5e1; border:1px solid #334155; padding:2px 6px;
+            border-radius:8px; font-size:11px;
+        }
+        svg.tree-lines { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
+
+        .explicacion-inorder {
+            background: #1e2937;
+            border-left: 5px solid #38bdf8;
+            padding: 15px 20px;
+            margin: 15px auto;
+            text-align: left;
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📘 Explicación: TreeSort (Inserción + Recorrido In-Order)</h1>
+
+    <div>
+        <button class="btn" onclick="prev()">⬅ Paso anterior</button>
+        <button class="btn" onclick="next()">➡ Paso siguiente</button>
+        <button class="btn" onclick="play()">▶ Reproducir</button>
+        <button class="btn" onclick="pause()">⏸ Pausar</button>
+        <button class="btn" onclick="location.href='/'">🏠 Volver</button>
+    </div>
+
+    <div id="estado" class="estado">Preparado</div>
+
+    <div class="main-layout">
+
+        <!-- ===================== PANEL IZQUIERDO ===================== -->
+        <div class="left-panel">
+            <h3>Arreglo actual</h3>
+            <div id="array" class="array-view"></div>
+
+            <h3>Elementos insertados (orden de inserción)</h3>
+            <div id="insertedOrder" class="array-view"></div>
+
+            <h3>Elementos restantes</h3>
+            <div id="remaining" class="array-view"></div>
+
+            <h3>Descripción</h3>
+            <div id="desc" style="min-height:50px; font-size:1.1rem;"></div>
+
+            <h3>Detalle del movimiento / recorrido</h3>
+            <div id="path" style="min-height:70px; text-align:left; color:#cbd5e1;"></div>
+
+            <h3>Explicación del paso actual</h3>
+            <div id="explainDetailed" style="min-height:160px;"></div>
+
+            <h3>Resultado parcial / final (arreglo ordenado)</h3>
+            <div id="result" class="array-view"></div>
+
+            <h3>Datos del paso</h3>
+            <pre id="stepData" style="text-align:left; max-width:800px; margin:auto; background:#071022; padding:10px; border-radius:6px; color:#cbd5e1;"></pre>
+        </div>
+
+        <!-- ===================== PANEL DERECHO (ÁRBOL) ===================== -->
+        <div class="right-panel">
+            <h3>🌳 Visual del Árbol</h3>
+            <div id="treeVis"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // ==================== ESTILOS ADICIONALES ====================
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .cell.inserted { background: #022c22; border:1px solid #10b981; color:#6ee7b7; }
+      .cell.pending { opacity:0.5; }
+    `;
+    document.head.appendChild(style);
+
+    function getInputFromQuery() {
+        const params = new URLSearchParams(window.location.search);
+        const raw = params.get('input');
+        if (!raw) return [6,3,8,1,5,9,2,7];
+        return raw.split(/[\s,]+/).map(n => parseInt(n)).filter(n => !isNaN(n));
+    }
+
+    let original = getInputFromQuery();
+    let steps = [];
+    let idx = 0;
+    let playing = false;
+    let interval = null;
+
+    async function loadSteps() {
+        try {
+            const res = await fetch('/api/treesort/steps', {
+                method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(original)
+            });
+            steps = await res.json();
+            idx = 0;
+            render();
+        } catch (e) {
+            document.getElementById('estado').innerText = 'Error cargando pasos: ' + e.message;
+        }
+    }
+
+    function render() {
+        if (!steps.length) return;
+
+        const s = steps[idx];
+        const insertedCount = steps.slice(0, idx + 1).reduce((c, st) => c + (st.type === 'insert' ? 1 : 0), 0);
+
+        // Arreglo actual
+        const arrayEl = document.getElementById('array');
+        arrayEl.innerHTML = '';
+        // compute which original index corresponds to the current step value (if any)
+        const activeIndex = getOriginalIndexForStep(idx);
+
+        original.forEach((v, i) => {
+            const d = document.createElement('div');
+            d.className = 'cell';
+            d.innerText = v;
+            if (i < insertedCount) d.classList.add('inserted');
+            else d.classList.add('pending');
+            if (activeIndex !== -1 && i === activeIndex) {
+                d.classList.add('activeCell');
+                const badge = document.createElement('div'); badge.className = 'index-badge'; badge.innerText = `🔎 ${i+1}`;
+                d.appendChild(badge);
+            }
+            arrayEl.appendChild(d);
+        });
+
+        // Resultado ordenado
+        const resultEl = document.getElementById('result');
+        resultEl.innerHTML = '';
+        if (s.type === 'visit' || s.type === 'done') {
+            (s.sorted || []).forEach(v => {
+                const d = document.createElement('div'); d.className = 'cell inserted'; d.innerText = v; resultEl.appendChild(d);
+            });
+        } else {
+            original.slice(0, insertedCount).forEach(v => {
+                const d = document.createElement('div'); d.className = 'cell inserted'; d.innerText = v; resultEl.appendChild(d);
+            });
+        }
+
+        // Insertados
+        const insertedOrder = steps.slice(0, idx + 1).filter(st => st.type === 'insert').map(st => st.value);
+        const insertedEl = document.getElementById('insertedOrder');
+        insertedEl.innerHTML = '';
+        insertedOrder.forEach(v => {
+            const d = document.createElement('div'); d.className='cell inserted'; d.innerText = v; insertedEl.appendChild(d);
+        });
+
+        // Restantes
+        function computeRemaining(orig, insertedList) {
+            const counts = {};
+            insertedList.forEach(x => counts[x] = (counts[x] || 0) + 1);
+            const rem = [];
+            orig.forEach(x => counts[x] ? counts[x]-- : rem.push(x));
+            return rem;
+        }
+        const remainingEl = document.getElementById('remaining');
+        remainingEl.innerHTML = '';
+        computeRemaining(original, insertedOrder).forEach(v => {
+            const d = document.createElement('div'); d.className='cell pending'; d.innerText = v; remainingEl.appendChild(d);
+        });
+
+        document.getElementById('stepData').innerText = JSON.stringify({ type: s.type, value: s.value, sorted: s.sorted }, null, 2);
+
+        renderTreeVis(s.tree, s.value);
+
+        const pathEl = document.getElementById('path');
+        const explainEl = document.getElementById('explainDetailed');
+        pathEl.innerHTML = '';
+        explainEl.innerHTML = '';
+
+        if (s.type === 'insert') {
+            const insertedBefore = steps.slice(0, idx).filter(st => st.type === 'insert').map(st => st.value);
+            const bstBefore = buildBST(insertedBefore);
+            const pathSteps = simulateInsertPath(bstBefore, s.value);
+
+            pathSteps.forEach(ps => {
+                const line = document.createElement('div');
+                if (ps.action === 'compare') {
+                    line.innerText = `🔎 Comparando con ${ps.at} → vamos por la ${ps.dir === 'left' ? 'izquierda' : 'derecha'}`;
+                } else {
+                    line.innerText = `📌 Insertamos ${s.value} como hijo ${ps.dir || ''} de ${ps.at ?? 'la raíz'}.`;
+                }
+                pathEl.appendChild(line);
+            });
+            explainEl.innerHTML = `Se está insertando el valor <strong>${s.value}</strong> en el árbol de búsqueda binaria.`;
+        }
+        else if (s.type === 'visit') {
+            const path = findPathToValue(s.tree, s.value);
+            path.forEach(p => {
+                const line = document.createElement('div');
+                line.innerText = `🔎 Desde ${p.from} → bajando a la ${p.dir === 'left' ? 'izquierda' : 'derecha'}`;
+                pathEl.appendChild(line);
+            });
+
+            explainEl.innerHTML = `
+                <strong>📌 Visitando el nodo ${s.value}</strong><br><br>
+                <div class="explicacion-inorder">
+                    <strong>¿Cómo funciona el recorrido In-Order?</strong><br><br>
+                    El algoritmo siempre sigue el mismo orden en cada nodo:<br><br>
+                    <strong>1. Primero recorre todo el subárbol izquierdo</strong> (todos los valores más pequeños)<br>
+                    <strong>2. Luego visita el nodo actual</strong> → aquí se agrega al arreglo ordenado<br>
+                    <strong>3. Finalmente recorre todo el subárbol derecho</strong> (todos los valores más grandes)<br><br>
+
+                    Cuando termina de procesar un nodo completamente (izquierda + visita + derecha),
+                    <strong>automáticamente regresa</strong> al nodo anterior que lo había llamado (su padre).<br><br>
+
+                    <strong>Importante:</strong> En esta etapa no se hacen comparaciones de valores.
+                    El orden ya quedó definido durante la inserción en el árbol.
+                </div>
+            `;
+            // show which index in original array corresponds to this visited value
+            const idxVisited = getOriginalIndexForStep(idx);
+            if (idxVisited !== -1) {
+                const note = document.createElement('div');
+                note.style.marginTop = '10px'; note.style.color = '#93c5fd';
+                note.innerHTML = `🔎 Índice original visitado: <strong>${idxVisited + 1}</strong> (posición en el arreglo original)`;
+                explainEl.appendChild(note);
+            }
+        }
+        else if (s.type === 'done') {
+            explainEl.innerHTML = `<strong>✅ Recorrido In-Order finalizado.</strong><br>El arreglo ya está completamente ordenado de menor a mayor.`;
+        }
+
+        let desc = s.type === 'insert' ? `Insertando ${s.value}` :
+            s.type === 'visit' ? `Visitando ${s.value} (In-Order)` : 'Proceso completado';
+
+        document.getElementById('desc').innerText = desc;
+        document.getElementById('estado').innerText = `${s.type.toUpperCase()} ${s.value ?? ''} | Paso ${idx+1}/${steps.length}`;
+    }
+
+    // ==================== FUNCIONES AUXILIARES (sin cambios) ====================
+    function buildBST(list) {
+        function node(v) { return {value: v, left: null, right: null}; }
+        let root = null;
+        function insert(nodeObj, val) {
+            if (!nodeObj) return node(val);
+            if (val < nodeObj.value) nodeObj.left = insert(nodeObj.left, val);
+            else nodeObj.right = insert(nodeObj.right, val);
+            return nodeObj;
+        }
+        list.forEach(v => root = insert(root, v));
+        return root;
+    }
+
+    function simulateInsertPath(root, val) {
+        const path = [];
+        let node = root;
+        while (node) {
+            if (val < node.value) {
+                path.push({action:'compare', at:node.value, dir:'left'});
+                if (!node.left) { path.push({action:'inserted', at:node.value, dir:'left'}); break; }
+                node = node.left;
+            } else {
+                path.push({action:'compare', at:node.value, dir:'right'});
+                if (!node.right) { path.push({action:'inserted', at:node.value, dir:'right'}); break; }
+                node = node.right;
+            }
+        }
+        return path;
+    }
+
+    function findPathToValue(rootObj, val) {
+        const path = [];
+        function dfs(node) {
+            if (!node) return false;
+            if (node.value === val) return true;
+            if (node.left && dfs(node.left)) { path.unshift({from:node.value, dir:'left'}); return true; }
+            if (node.right && dfs(node.right)) { path.unshift({from:node.value, dir:'right'}); return true; }
+            return false;
+        }
+        if (rootObj && rootObj.value !== val) dfs(rootObj);
+        return path;
+    }
+
+    // Devuelve el índice (0-based) en el arreglo original que corresponde al valor del paso actual
+    function getOriginalIndexForStep(stepIndex) {
+        if (!steps.length || stepIndex < 0 || stepIndex >= steps.length) return -1;
+        const targetStep = steps[stepIndex];
+        if (!targetStep || targetStep.value == null) return -1;
+        const val = targetStep.value;
+
+        // Contar cuántas veces hemos procesado este valor hasta este paso (inclusive)
+        let count = 0;
+        for (let i = 0; i <= stepIndex; i++) {
+            if (steps[i].type === 'insert' && steps[i].value === val) count++;
+        }
+
+        // Encontrar la n'th ocurrencia del valor en el arreglo original
+        let occ = 0;
+        for (let i = 0; i < original.length; i++) {
+            if (original[i] === val) {
+                occ++;
+                if (occ === count) return i;
+            }
+        }
+        return -1;
+    }
+
+    function renderTreeVis(root, active) {
+        const cont = document.getElementById('treeVis');
+        cont.innerHTML = '';
+        if (!root) return;
+
+        const positions = [];
+        const width = cont.clientWidth || 600;
+        const levelHeight = 82;
+
+        function traverse(node, depth, xMin, xMax, parentIndex, side) {
+            if (!node) return;
+            const x = (xMin + xMax) / 2;
+            const y = depth * levelHeight + 50;
+            const idxPos = positions.length;
+            positions.push({node, x, y, parentIndex, side});
+            traverse(node.left, depth+1, xMin, x, idxPos, 'left');
+            traverse(node.right, depth+1, x, xMax, idxPos, 'right');
+        }
+
+        traverse(root, 0, 0, width, null, null);
+
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', '100%'); svg.setAttribute('height', '100%');
+        svg.classList.add('tree-lines');
+
+        positions.forEach((p, i) => {
+            if (p.parentIndex !== null) {
+                const parent = positions[p.parentIndex];
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', parent.x); line.setAttribute('y1', parent.y+23);
+                line.setAttribute('x2', p.x); line.setAttribute('y2', p.y-23);
+                line.setAttribute('stroke', '#475569'); line.setAttribute('stroke-width', '1.6');
+                svg.appendChild(line);
+            }
+        });
+        cont.appendChild(svg);
+
+        positions.forEach(p => {
+            const nd = document.createElement('div');
+            nd.className = 't-node';
+            nd.style.left = p.x + 'px';
+            nd.style.top = p.y + 'px';
+            nd.innerText = p.node.value;
+            if (p.node.value === active) nd.classList.add('active');
+            if (p.side) {
+                const b = document.createElement('div'); b.className='t-badge';
+                b.innerText = p.side === 'left' ? 'L' : 'R';
+                nd.appendChild(b);
+            }
+            cont.appendChild(nd);
+        });
+    }
+
+    function next() { if (idx < steps.length - 1) { idx++; render(); } }
+    function prev() { if (idx > 0) { idx--; render(); } }
+    function play() {
+        if (playing) return; playing = true;
+        interval = setInterval(() => { if (idx >= steps.length - 1) { pause(); return; } idx++; render(); }, 800);
+    }
+    function pause() { playing = false; clearInterval(interval); }
+
+    loadSteps();
+</script>
+</body>
+</html>
