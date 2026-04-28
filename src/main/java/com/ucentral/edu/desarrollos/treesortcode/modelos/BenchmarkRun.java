@@ -40,5 +40,39 @@ public class BenchmarkRun {
 
     public BenchmarkRun() {}
 
+    public void setAiAnalysis(String analysis) {
+    }
+
+    public void setParamsJson(String paramsJson) {
+        this.paramsJson = paramsJson;
+    }
+
+    public void setResultJson(String resultJson) {
+        this.resultJson = resultJson;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getResultJson() {
+        return resultJson;
+    }
+
+    public String getAiAnalysis() {
+        return aiAnalysis;
+    }
+
+    public String getParamsJson() {
+        return paramsJson;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Long getId() {
+        return id;
+    }
 }
 

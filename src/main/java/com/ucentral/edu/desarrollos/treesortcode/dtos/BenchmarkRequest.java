@@ -1,6 +1,8 @@
 package com.ucentral.edu.desarrollos.treesortcode.dtos;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import com.fasterxml.jackson.annotation.JsonAlias;
 
@@ -38,5 +40,40 @@ public class BenchmarkRequest {
 
     public BenchmarkRequest() {}
 
+    public Long getSeed() {
+        return seed;
+    }
+
+    public int getStartN() {
+        return startN;
+    }
+
+    public Integer getMin() {
+        return min;
+    }
+
+    public List<Integer> getArray() {
+        return array;
+    }
+
+    public int getRepetitions() {
+        return repetitions;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+
+    public Integer getMax() {
+        return max;
+    }
+
+    public int getFactor() {
+        return factor;
+    }
+
+    public int getEndN() {
+        return endN;
+    }
 }
 
