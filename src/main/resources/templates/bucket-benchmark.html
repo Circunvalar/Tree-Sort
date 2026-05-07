@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Benchmark BucketSort</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { background:#020617; color:white; font-family:Arial; }
+        .container { max-width:1000px; margin:auto; padding:20px; }
+
+        .btn {
+            padding:10px;
+            margin:5px;
+            background:#0f172a;
+            border:1px solid #334155;
+            color:white;
+            border-radius:8px;
+        }
+
+        .modal {
+            display:none;
+            position:fixed;
+            top:0; left:0;
+            width:100%; height:100%;
+            background:rgba(0,0,0,0.7);
+        }
+
+        .modal-content {
+            background:#1e293b;
+            margin:10% auto;
+            padding:20px;
+            width:60%;
+            border-radius:10px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <h1>📈 Benchmark BucketSort</h1>
+
+    <input id="sizeN" type="number" value="500">
+    <input id="reps" type="number" value="3">
+
+    <button class="btn" onclick="run()">Ejecutar</button>
+    <button class="btn" onclick="openModal()">ℹ Explicación</button>
+    <button class="btn" onclick="location.href='/bucket'">⬅ Volver</button>
+
+    <canvas id="chart"></canvas>
+
+</div>
+
+<!-- MODAL -->
+<div id="modal" class="modal">
+    <div class="modal-content">
+
+        <h2>📘 Complejidad BucketSort</h2>
+
+        <p>
+            <strong>Mejor caso:</strong> O(n)<br>
+            <strong>Promedio:</strong> O(n + k)<br>
+            <strong>Peor caso:</strong> O(n²)<br><br>
+
+            BucketSort divide los datos en "cubetas".
+            Si los datos están uniformemente distribuidos, el algoritmo es casi lineal.
+            <br><br>
+
+            La línea de tendencia muestra este comportamiento esperado.
+        </p>
+
+        <button class="btn" onclick="closeModal()">Cerrar</button>
+
+    </div>
+</div>
+
+<script>
+    let chart;
+
+    async function run(){
+
+        const size = document.getElementById("sizeN").value;
+        const reps = document.getElementById("reps").value;
+
+        const res = await fetch(`/api/bucketsort/benchmark?size=${size}&reps=${reps}&min=0&max=1000`);
+
+        if(!res.ok){
+            alert("Error backend");
+            return;
+        }
+
+        const data = await res.json();
+
+        const labels = Object.keys(data);
+        const values = Object.values(data);
+
+        // tendencia lineal
+        const trend = labels.map(n => n * 0.01);
+
+        if(chart) chart.destroy();
+
+        chart = new Chart(document.getElementById("chart"), {
+            type: "line",
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: "Tiempo real",
+                        data: values
+                    },
+                    {
+                        label: "Tendencia O(n)",
+                        data: trend,
+                        borderDash: [5,5]
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    x: {
+                        title: { display:true, text:"Tamaño del arreglo", color:"white" },
+                        ticks: { color:"white" }
+                    },
+                    y: {
+                        title: { display:true, text:"Tiempo (ms)", color:"white" },
+                        ticks: { color:"white" }
+                    }
+                }
+            }
+        });
+    }
+
+    function openModal(){
+        document.getElementById("modal").style.display="block";
+    }
+
+    function closeModal(){
+        document.getElementById("modal").style.display="none";
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Explicación - BucketSort</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            background: #020617;
+            color: #e5e5e5;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        h1 { color: #38bdf8; }
+
+        .container {
+            max-width: 1400px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .left-panel {
+            flex: 1;
+            min-width: 520px;
+        }
+
+        .right-panel {
+            flex: 1;
+            min-width: 420px;
+            max-width: 650px;
+        }
+
+        .btn {
+            background: #020617;
+            border: 1px solid #1e293b;
+            padding: 10px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: white;
+            margin: 5px;
+        }
+        .btn:hover { background: #0f172a; }
+
+        .estado { color: #38bdf8; margin-top: 12px; font-weight: bold; }
+
+        .array-view {
+            display:flex;
+            justify-content:center;
+            gap:8px;
+            flex-wrap:wrap;
+            margin:12px 0;
+        }
+
+        .cell {
+            background:#0f172a;
+            border:1px solid #334155;
+            padding:10px 14px;
+            border-radius:8px;
+        }
+
+        .cell.active {
+            outline:3px solid #f59e0b;
+            transform:scale(1.1);
+        }
+
+        .bucket {
+            background:#020617;
+            border:1px solid #334155;
+            border-radius:10px;
+            padding:10px;
+            margin:10px;
+        }
+
+        .bucket-title {
+            color:#38bdf8;
+            margin-bottom:5px;
+        }
+
+        #bucketVis {
+            border:1px solid #1e293b;
+            border-radius:12px;
+            padding:10px;
+            min-height:400px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>🪣 Explicación: BucketSort</h1>
+
+    <div>
+
+        <!-- CONTROL DE PASOS -->
+        <button class="btn" onclick="prev()">⬅ Paso</button>
+        <button class="btn" onclick="next()">➡ Paso</button>
+        <button class="btn" onclick="play()">▶</button>
+        <button class="btn" onclick="pause()">⏸</button>
+
+        <!-- ENTRADA -->
+        <input id="manualInput" class="btn" placeholder="Ej: 0.5,0.2,0.9" style="width:220px">
+
+        <button class="btn" onclick="setManual()">✍️ Manual</button>
+        <button class="btn" onclick="randomArray()">🎲 Aleatorio</button>
+        <button class="btn" onclick="start()">🚀 Iniciar</button>
+
+        <!-- CSV -->
+        <input type="file" id="csvFile" accept=".csv" style="display:none">
+        <button class="btn" onclick="document.getElementById('csvFile').click()">📄 CSV</button>
+        <button class="btn" onclick="openModal()">📘 ¿Cómo funciona?</button>
+        <!-- EXTRA -->
+        <button class="btn" onclick="location.href='/bucketbenchmark'">
+            📈 Benchmark
+        </button>
+        <button class="btn" onclick="location.href='/'">🏠 Inicio</button>
+
+    </div>
+    </div>
+
+    <div id="estado" class="estado">Preparado</div>
+
+    <div class="main-layout">
+
+        <!-- IZQUIERDA -->
+        <div class="left-panel">
+
+            <h3>Arreglo</h3>
+            <div id="array" class="array-view"></div>
+
+            <h3>Descripción</h3>
+            <div id="desc"></div>
+
+            <h3>Detalle</h3>
+            <div id="path"></div>
+
+            <h3>Explicación</h3>
+            <div id="explain"></div>
+
+            <h3>Resultado</h3>
+            <div id="result" class="array-view"></div>
+
+        </div>
+
+        <!-- DERECHA -->
+        <div class="right-panel">
+            <h3>🪣 Buckets</h3>
+            <div id="bucketVis"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+
+    let steps = [];
+    let idx = 0;
+    let playing = false;
+    let interval;
+
+    let original = [];
+    // 🔥 Cargar desde backend
+    async function load(){
+
+        document.getElementById('estado').innerText = "Cargando...";
+
+        try{
+            const res = await fetch('/api/bucketsort/steps',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify(original) // 🔥 importante
+            });
+
+            if(!res.ok){
+                throw new Error("Error backend");
+            }
+
+            steps = await res.json();
+
+            idx = 0;
+            render();
+
+        }catch(e){
+            document.getElementById('estado').innerText = "❌ Error: " + e.message;
+            console.error(e);
+        }
+    }
+
+    function render(){
+
+        const s = steps[idx];
+
+        // ARRAY
+        const arr = document.getElementById('array');
+        arr.innerHTML = '';
+        original.forEach(v=>{
+            const d = document.createElement('div');
+            d.className='cell';
+            if(v===s.value) d.classList.add('active');
+            d.innerText=v;
+            arr.appendChild(d);
+        });
+
+        // BUCKETS
+        const cont = document.getElementById('bucketVis');
+        cont.innerHTML='';
+
+        if(s.buckets){
+            s.buckets.forEach((b,i)=>{
+                const div = document.createElement('div');
+                div.className='bucket';
+
+                const title = document.createElement('div');
+                title.className='bucket-title';
+                title.innerText='Bucket '+i;
+
+                div.appendChild(title);
+
+                b.forEach(v=>{
+                    const c = document.createElement('div');
+                    c.className='cell';
+                    c.innerText=v;
+                    div.appendChild(c);
+                });
+
+                cont.appendChild(div);
+            });
+        }
+
+        // RESULTADO
+        const res = document.getElementById('result');
+        res.innerHTML='';
+        (s.sorted || []).forEach(v=>{
+            const d=document.createElement('div');
+            d.className='cell';
+            d.innerText=v;
+            res.appendChild(d);
+        });
+
+        // TEXTOS
+        document.getElementById('estado').innerText =
+            s.type.toUpperCase() + " | Paso " + (idx+1);
+
+        document.getElementById('desc').innerText =
+            s.type === 'bucket' ? "Distribuyendo en buckets" :
+                s.type === 'sort' ? "Ordenando buckets" :
+                    s.type === 'merge' ? "Uniendo buckets" : "";
+
+        // EXPLICACION
+        const explain = document.getElementById('explain');
+
+        if(s.type === 'bucket'){
+            explain.innerHTML = `
+        📌 Se toma el valor <b>${s.value}</b> y se coloca en su bucket correspondiente.
+        <br><br>
+        BucketSort distribuye los elementos según rangos.
+        `;
+        }
+
+        if(s.type === 'sort'){
+            explain.innerHTML = `
+        📌 Ahora se ordenan los valores dentro de cada bucket.
+        <br><br>
+        Normalmente se usa InsertionSort porque los buckets son pequeños.
+        `;
+        }
+
+        if(s.type === 'merge'){
+            explain.innerHTML = `
+        📌 Finalmente se concatenan los buckets.
+        <br><br>
+        Esto produce el arreglo ordenado final.
+        `;
+        }
+    }
+
+    // CONTROLES
+    function next(){ if(idx<steps.length-1){ idx++; render(); }}
+    function prev(){ if(idx>0){ idx--; render(); }}
+    function play(){
+        if(playing) return;
+        playing=true;
+        interval=setInterval(()=>{
+            if(idx>=steps.length-1){ pause(); return;}
+            idx++; render();
+        },800);
+    }
+    function pause(){ playing=false; clearInterval(interval); }
+
+    load();
+    // ======================= INPUT MANUAL =======================
+    function setManual(){
+
+        const input = document.getElementById("manualInput").value;
+
+        const arr = input
+            .split(/[\s,]+/)
+            .map(n => parseFloat(n))
+            .filter(n => !isNaN(n));
+
+        if(arr.length === 0){
+            alert("Datos inválidos");
+            return;
+        }
+
+        original = arr;
+
+        document.getElementById('estado').innerText =
+            "✍️ Datos cargados. Presiona INICIAR";
+
+        steps = [];
+        idx = 0;
+
+        renderPreview();
+    }
+
+    // ======================= ALEATORIO =======================
+    function randomArray(){
+
+        const size = Math.floor(Math.random() * 8) + 5;
+        original = [];
+
+        for(let i=0;i<size;i++){
+            original.push(parseFloat(Math.random().toFixed(2)));
+        }
+
+        document.getElementById('estado').innerText =
+            "🎲 Arreglo generado. Presiona INICIAR";
+
+        steps = [];
+        idx = 0;
+
+        renderPreview();
+    }
+
+    // ======================= CSV =======================
+    document.getElementById("csvFile").addEventListener("change", function(e){
+
+        const file = e.target.files[0];
+        if(!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = function(evt){
+
+            const text = evt.target.result;
+
+            const arr = text
+                .split(/[\n,;\s]+/)
+                .map(n => parseFloat(n))
+                .filter(n => !isNaN(n));
+
+            if(arr.length === 0){
+                alert("CSV inválido");
+                return;
+            }
+
+            original.length = 0;
+            arr.forEach(v => original.push(v));
+
+            idx = 0;
+            load();
+        };
+
+        reader.readAsText(file);
+    });
+    function renderPreview(){
+
+        const arr = document.getElementById('array');
+        arr.innerHTML = '';
+
+        original.forEach(v=>{
+            const d = document.createElement('div');
+            d.className='cell';
+            d.innerText=v;
+            arr.appendChild(d);
+        });
+
+        document.getElementById('bucketVis').innerHTML = '';
+        document.getElementById('result').innerHTML = '';
+    }
+    function openModal(){
+        document.getElementById("modal").style.display = "flex";
+    }
+
+    function closeModal(){
+        document.getElementById("modal").style.display = "none";
+    }
+    async function start(){
+
+        if(!original || original.length === 0){
+            alert("⚠️ Primero ingresa datos (manual, aleatorio o CSV)");
+            return;
+        }
+
+        document.getElementById('estado').innerText = "Procesando...";
+
+        try{
+            const res = await fetch('/api/bucketsort/steps',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify(original)
+            });
+
+            if(!res.ok){
+                throw new Error("Error en backend");
+            }
+
+            steps = await res.json();
+
+            if(!steps || steps.length === 0){
+                throw new Error("El backend no devolvió pasos");
+            }
+
+            idx = 0;
+            render();
+
+        }catch(e){
+            console.error(e);
+            document.getElementById('estado').innerText = "❌ " + e.message;
+        }
+    }
+</script>
+<div id="modal" style="
+display:none;
+position:fixed;
+top:0; left:0;
+width:100%; height:100%;
+background:rgba(0,0,0,0.7);
+justify-content:center;
+align-items:center;
+z-index:999;
+">
+
+    <div style="
+background:#020617;
+padding:25px;
+border-radius:12px;
+max-width:700px;
+text-align:left;
+border:1px solid #1e293b;
+max-height:80vh;
+overflow:auto;
+">
+
+        <h2 style="color:#38bdf8;">🪣 BucketSort</h2>
+
+        <div style="line-height:1.6; color:#cbd5e1;">
+
+            <b>📌 ¿Qué es BucketSort?</b><br><br>
+            Es un algoritmo de ordenamiento que divide los datos en "cubetas" (buckets),
+            los ordena individualmente y luego los combina.
+
+            <br><br>
+
+            <b>⚙️ Pasos del algoritmo:</b><br><br>
+
+            1. Distribuir los elementos en buckets según su valor<br>
+            2. Ordenar cada bucket (usualmente con InsertionSort)<br>
+            3. Unir todos los buckets en orden
+
+            <br><br>
+
+            <b>🧠 Complejidad:</b><br><br>
+
+            - Mejor caso: O(n)<br>
+            - Promedio: O(n + k)<br>
+            - Peor caso: O(n²)
+
+            <br><br>
+
+            <b>⚠️ Importante:</b><br><br>
+
+            Funciona mejor cuando los datos están distribuidos uniformemente.
+
+            <br><br>
+
+            <b>📊 Ejemplo:</b><br><br>
+
+            0.42 → bucket 4<br>
+            0.32 → bucket 3<br>
+            0.23 → bucket 2<br>
+
+            <br>
+
+            Luego se ordenan los buckets y se combinan.
+
+        </div>
+
+        <br>
+        <button class="btn" onclick="closeModal()">Cerrar</button>
+
+    </div>
+</div>
+</body>
+</html>

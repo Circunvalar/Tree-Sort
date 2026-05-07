@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Bubble Sort Pro</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { background:#020617; color:white; font-family:Arial; text-align:center; }
+        .container { max-width:1200px; margin:auto; padding:20px; }
+
+        .btn { padding:10px; margin:5px; border-radius:8px; border:1px solid #1e293b; background:#020617; color:white; cursor:pointer; }
+        .btn:hover { background:#0f172a; }
+
+        .array-view { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin:10px; }
+        .cell { background:#0f172a; padding:12px; border-radius:8px; min-width:40px; }
+        .active { outline:3px solid orange; }
+        .swap { background:#7c2d12; }
+        .sorted { background:#022c22; }
+
+        input { padding:8px; margin:5px; border-radius:6px; border:none; }
+
+        .panel { margin-top:20px; padding:15px; background:#071022; border-radius:10px; }
+        <style>
+         body {
+             background: #020617;
+             color: #e5e5e5;
+             font-family: Arial;
+             text-align: center;
+         }
+
+        h1 { color: #38bdf8; }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        .btn {
+            background: #020617;
+            border: 1px solid #1e293b;
+            padding: 10px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: white;
+            margin: 5px;
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            background: #0f172a;
+            transform: scale(1.05);
+        }
+
+        input {
+            background: #020617;
+            border: 1px solid #1e293b;
+            padding: 8px;
+            border-radius: 8px;
+            color: white;
+            margin: 5px;
+        }
+
+        .panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: #071022;
+            border-radius: 12px;
+            border: 1px solid #1e293b;
+        }
+
+        .array-view {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 10px;
+        }
+
+        .cell {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            min-width: 40px;
+            transition: 0.2s;
+        }
+
+        .active { outline: 3px solid #f59e0b; }
+        .swap { background: #7c2d12; }
+        .sorted { background: #022c22; }
+
+        .estado {
+            color: #38bdf8;
+            margin: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>📘 Bubble Sort PRO</h1>
+
+    <!-- ================= INPUTS ================= -->
+    <div class="panel">
+
+        <h3>Generar / Cargar Datos</h3>
+
+        <input id="manualInput" placeholder="Ej: 5,3,8,1">
+
+        <button class="btn" onclick="setManual()">Usar Manual</button>
+        <button class="btn" onclick="randomArray()">Aleatorio</button>
+        <button class="btn" onclick="location.href='/bubble-benchmark'">📈 Ir a Benchmark</button>
+
+        <input type="file" id="csvFile" accept=".csv" onchange="loadCSV(event)">
+
+    </div>
+
+    <!-- ================= CONTROLES ================= -->
+    <div>
+        <button class="btn" onclick="prev()">⬅</button>
+        <button class="btn" onclick="next()">➡</button>
+        <button class="btn" onclick="play()">▶</button>
+        <button class="btn" onclick="pause()">⏸</button>
+    </div>
+
+    <div id="estado"></div>
+
+    <!-- ================= VISUAL ================= -->
+    <div class="panel">
+
+        <h3>Arreglo</h3>
+        <div id="array" class="array-view"></div>
+
+        <h3>Descripción</h3>
+        <div id="desc"></div>
+
+    </div>
+</div>
+
+<script>
+
+    // ================= VARIABLES =================
+    let original = [6,3,8,1,5];
+    let steps = [];
+    let idx = 0;
+    let interval;
+    let chart;
+
+    // ================= GENERAR PASOS =================
+    function generateSteps(arr){
+        let a=[...arr];
+        let s=[];
+
+        for(let i=0;i<a.length;i++){
+            for(let j=0;j<a.length-i-1;j++){
+
+                s.push({type:'compare', array:[...a], i:j, j:j+1});
+
+                if(a[j]>a[j+1]){
+                    [a[j],a[j+1]]=[a[j+1],a[j]];
+                    s.push({type:'swap', array:[...a], i:j, j:j+1});
+                }
+            }
+            s.push({type:'sorted', array:[...a], sortedIndex:a.length-i-1});
+        }
+        return s;
+    }
+
+    // ================= RENDER =================
+    function render(){
+        if(!steps.length) return;
+
+        const s=steps[idx];
+        document.getElementById('estado').innerText=`Paso ${idx+1}/${steps.length}`;
+
+        const arr=document.getElementById('array');
+        arr.innerHTML='';
+
+        s.array.forEach((v,i)=>{
+            const d=document.createElement('div');
+            d.className='cell';
+
+            if(i===s.i || i===s.j) d.classList.add('active');
+            if(s.type==='swap' && (i===s.i || i===s.j)) d.classList.add('swap');
+            if(s.sortedIndex!==undefined && i>=s.sortedIndex) d.classList.add('sorted');
+
+            d.innerText=v;
+            arr.appendChild(d);
+        });
+
+        document.getElementById('desc').innerText =
+            s.type==='compare' ? `Comparando ${s.array[s.i]} y ${s.array[s.j]}` :
+                s.type==='swap' ? `Intercambio` :
+                    `Elemento fijo`;
+    }
+
+    // ================= CONTROLES =================
+    function next(){ if(idx<steps.length-1){ idx++; render(); } }
+    function prev(){ if(idx>0){ idx--; render(); } }
+    function play(){ interval=setInterval(()=>{ next(); },500); }
+    function pause(){ clearInterval(interval); }
+
+    // ================= INPUT MANUAL =================
+    function setManual(){
+        const val=document.getElementById('manualInput').value;
+        original=val.split(/[\s,]+/).map(Number).filter(n=>!isNaN(n));
+        reset();
+    }
+
+    // ================= RANDOM =================
+    function randomArray(){
+        let size=Math.floor(Math.random()*10)+5; // 5 a 15 elementos
+        original=Array.from({length:size},()=>Math.floor(Math.random()*100));
+        reset();
+    }
+
+    // ================= CSV =================
+    function loadCSV(e){
+        const file=e.target.files[0];
+        const reader=new FileReader();
+
+        reader.onload=function(evt){
+            const text=evt.target.result;
+            original=text.split(/[\s,;\n]+/).map(Number).filter(n=>!isNaN(n));
+            reset();
+        };
+
+        reader.readAsText(file);
+    }
+
+    // ================= RESET =================
+    function reset(){
+        steps=generateSteps(original);
+        idx=0;
+        render();
+    }
+
+    // ================= BENCHMARK =================
+    async function runBenchmark(){
+
+        const size=document.getElementById("sizeN").value;
+        const reps=document.getElementById("reps").value;
+
+        const res=await fetch(`/api/bubblesort/benchmark?size=${size}&reps=${reps}&min=0&max=1000`);
+        const data=await res.json();
+
+        const labels=Object.keys(data);
+        const values=Object.values(data);
+
+        if(chart) chart.destroy();
+
+        chart=new Chart(document.getElementById("chart"),{
+            type:"line",
+            data:{
+                labels:labels,
+                datasets:[{
+                    label:"Tiempo (ms)",
+                    data:values
+                }]
+            }
+        });
+    }
+
+    // INIT
+    reset();
+
+</script>
+
+</body>
+</html>
